@@ -6,7 +6,7 @@ int main() {
     double d = 0.1;
     vector<double> vec;
     string fn;
-    for(double q = 1+d; q < 3; q+=d ) {
+    for(double q = 1+d; q < 300; q+=d ) {
         vec.clear();
         for(int m=2; m<200; m++) {
             cout << m << endl;

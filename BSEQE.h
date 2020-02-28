@@ -7,26 +7,6 @@
 #include <cstdlib>
 using namespace std;
 
-
-double entropy(double q, int m) {
-    double k = 3;
-    double n = 1e5;
-    double ce = log(n)/log(q);
-    int c = int(ce/k);
-    double ent = 0;
-    while (c < ce*k) {
-        double qt = pow(q, c);
-        double qt1 = qt * q;
-        double p = exp(-n/qt1)-exp(-n/qt);
-        if (p!=0)
-            ent += -p*log2(p);
-        // cout << qt << " " << qt1 << " p:" << p << " | ent: " << ent << endl;
-        c ++;
-    }
-    return ent * m;
-}
-
-
 double quant_fac(double q, const vector<double> x, double k, int ne=1000) {
     int m = x.size();
     // calculate the quantization factor
@@ -134,4 +114,33 @@ double derror(int m, double q, double t, int k, int ne = 100000) {
         ser += (est/lamb - 1.0) * (est/lamb - 1.0);
     }
     return ser/ne;
+}
+
+double H(double q, double lamb) {
+    // in unit of bits
+    double ent = 0;
+    double l = 10;
+    int a = -l/2.0/log(q);
+    int b = l/log(q);
+    for(int i=a; i<b; i++) {
+        double eqx1 = exp(-lamb*pow(1.0/q,i+1));
+        double eqx = exp(-lamb*pow(1.0/q,i));
+        ent -= (eqx1-eqx)*log2(eqx1-eqx);
+    }
+    return ent;
+}
+
+double D(double q, double lamb) {
+    double d = 0;
+    double l = 10;
+    int a = -l/2.0/log(q);
+    int b = l/log(q);
+    for(int i=a; i<b; i++) {
+        double qx1 = -lamb*pow(1.0/q,i+1);
+        double qx = -lamb*pow(1.0/q,i);
+        double eqx1 = exp(-lamb*pow(1.0/q,i+1));
+        double eqx = exp(-lamb*pow(1.0/q,i));
+        d += (qx1*eqx1-qx*eqx)*(qx1*eqx1-qx*eqx)/(eqx1-eqx);
+    }
+    return 1.0/d;
 }
