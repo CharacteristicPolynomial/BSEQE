@@ -26,7 +26,7 @@ void list_write(const vector<double>& vec, const char* filename) {
     ofstream ofs;
     ofs.open(filename);
     ofs.precision(12);
-    cout << "?" << endl;
+    // cout << "?" << endl;
     for(auto& d : vec) {
         ofs << fixed << d << '\n';
     }

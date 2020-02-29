@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include "list.h"
 using namespace std;
 
 double quant_fac(double q, const vector<double> x, double k, int ne=1000) {
@@ -22,7 +23,7 @@ double quant_fac(double q, const vector<double> x, double k, int ne=1000) {
         ths[j] = tempv[j]/temp2*RAND_MAX;
     }
 
-    int mb = 2*m; // number of summations
+    int mb = 4*m; // number of summations
     double nomin =0;
     double denomin = 0;
     vector<double> ex(m); // x for experiment
@@ -81,20 +82,24 @@ double bseqe_q(const vector<double>& x, double q, double k) {
     return conte * quant_fac(q,x,k);
 }
 
-double derror(int m, double q, double t, int k, int ne = 100000) {
+void quant_list(int m, double q, double t, int k, string fn, bool offset=false, int ne = 10000) {
     // REQUIRE: m>=1, q>1, t>=0, k>=1
-    double lamb = 1+(q-1)*t;
+    double lamb = pow(q,t);
     exponential_distribution<double> dist(lamb);
     default_random_engine gen;
     unsigned d = chrono::high_resolution_clock::now().time_since_epoch().count();
     gen.seed(d);
     
     vector<double> x(m);
+    vector<double> qual;
     double ser = 0; // sum of errors
     for (int i=0; i<ne; i++) {
+        // cout << i << endl;
         for(int j=0; j<m; j++) {
             double roll = dist(gen);
-            double xj = 0;
+            if(offset)
+                roll /= pow(q,(double)j/(double)m);
+            double xj=0;
             if(roll > 1) {
                 while(roll > 1) {
                     xj -= 1;
@@ -107,11 +112,53 @@ double derror(int m, double q, double t, int k, int ne = 100000) {
                     roll *= q;
                 }
             }
+            if(offset)
+                xj -= (double)j/(double)m;
+            x[j] = xj;
+        }
+        qual.push_back(quant_fac(q,x,k));
+    }
+    list_write(qual, fn.c_str());
+    return;
+}
+
+double derror(int m, double q, double t, int k, bool offset=false, int ne = 100000) {
+    // REQUIRE: m>=1, q>1, t>=0, k>=1
+    double lamb = pow(q,t);
+    exponential_distribution<double> dist(lamb);
+    default_random_engine gen;
+    unsigned d = chrono::high_resolution_clock::now().time_since_epoch().count();
+    gen.seed(d);
+    
+    vector<double> x(m);
+    double ser = 0; // sum of errors
+    for (int i=0; i<ne; i++) {
+        // cout << i << endl;
+        for(int j=0; j<m; j++) {
+            double roll = dist(gen);
+            if(offset)
+                roll /= pow(q,(double)j/(double)m);
+            double xj=0;
+            if(roll > 1) {
+                while(roll > 1) {
+                    xj -= 1;
+                    roll /= q;
+                }
+            } else {
+                roll *= q;
+                while(roll <= 1) {
+                    xj += 1;
+                    roll *= q;
+                }
+            }
+            if(offset)
+                xj -= (double)j/(double)m;
             x[j] = xj;
         }
         double est = bseqe_q(x, q, k);
         // cout << i << " : " <<  est << endl;
         ser += (est/lamb - 1.0) * (est/lamb - 1.0);
+        // cout << lamb << " " <<  est << endl;
     }
     return ser/ne;
 }
